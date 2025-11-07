@@ -175,7 +175,6 @@ function renderCivTable() {
           </div>
           <small>${civ.strength.toFixed(3)}</small>
         </td>
-        <td class="strength-expected" data-civ="${civ.name}">${(civ.strength * 100).toFixed(1)}%</td>
         <td class="expected-rate" data-civ="${civ.name}">${(expectedRate * 100).toFixed(1)}%</td>
         <td class="win-rate" data-civ="${civ.name}">--</td>
         <td class="match-count" data-civ="${civ.name}">0</td>
