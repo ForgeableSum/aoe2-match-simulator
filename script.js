@@ -1,56 +1,66 @@
-const CIV_NAMES = [
-  "Aztecs",
-  "Berbers",
-  "Bengalis",
-  "Bohemians",
-  "Britons",
-  "Bulgarians",
-  "Burgundians",
-  "Burmese",
-  "Byzantines",
-  "Celts",
-  "Chinese",
-  "Cumans",
-  "Dravidians",
-  "Ethiopians",
-  "Franks",
-  "Georgians",
-  "Goths",
-  "Gurjaras",
-  "Hindustanis",
-  "Huns",
-  "Incas",
-  "Italians",
-  "Japanese",
-  "Khmer",
-  "Koreans",
-  "Lithuanians",
-  "Magyars",
-  "Malay",
-  "Malians",
-  "Mayans",
-  "Mongols",
-  "Persians",
-  "Poles",
-  "Portuguese",
-  "Romans",
-  "Saracens",
-  "Sicilians",
-  "Slavs",
-  "Spanish",
-  "Tatars",
-  "Teutons",
-  "Turks",
-  "Vietnamese",
-  "Vikings"
+const CIV_DATA = [
+  { name: "Chinese", winRate: 0.597 },
+  { name: "Celts", winRate: 0.576 },
+  { name: "Mayans", winRate: 0.573 },
+  { name: "Malians", winRate: 0.559 },
+  { name: "Malay", winRate: 0.558 },
+  { name: "Shu", winRate: 0.556 },
+  { name: "Khitans", winRate: 0.551 },
+  { name: "Ethiopians", winRate: 0.548 },
+  { name: "Bengalis", winRate: 0.539 },
+  { name: "Romans", winRate: 0.538 },
+  { name: "Khmer", winRate: 0.529 },
+  { name: "Mongols", winRate: 0.529 },
+  { name: "Portuguese", winRate: 0.528 },
+  { name: "Vikings", winRate: 0.523 },
+  { name: "Koreans", winRate: 0.518 },
+  { name: "Slavs", winRate: 0.516 },
+  { name: "Goths", winRate: 0.514 },
+  { name: "Gurjaras", winRate: 0.513 },
+  { name: "Huns", winRate: 0.513 },
+  { name: "Wei", winRate: 0.509 },
+  { name: "Poles", winRate: 0.508 },
+  { name: "Franks", winRate: 0.501 },
+  { name: "Bulgarians", winRate: 0.5 },
+  { name: "Wu", winRate: 0.499 },
+  { name: "Tatars", winRate: 0.496 },
+  { name: "Jurchens", winRate: 0.493 },
+  { name: "Japanese", winRate: 0.49 },
+  { name: "Byzantines", winRate: 0.49 },
+  { name: "Burmese", winRate: 0.49 },
+  { name: "Bohemians", winRate: 0.488 },
+  { name: "Persians", winRate: 0.487 },
+  { name: "Vietnamese", winRate: 0.483 },
+  { name: "Britons", winRate: 0.477 },
+  { name: "Dravidians", winRate: 0.477 },
+  { name: "Magyars", winRate: 0.472 },
+  { name: "Burgundians", winRate: 0.47 },
+  { name: "Italians", winRate: 0.47 },
+  { name: "Sicilians", winRate: 0.465 },
+  { name: "Lithuanians", winRate: 0.465 },
+  { name: "Teutons", winRate: 0.464 },
+  { name: "Armenians", winRate: 0.463 },
+  { name: "Spanish", winRate: 0.462 },
+  { name: "Berbers", winRate: 0.456 },
+  { name: "Aztecs", winRate: 0.451 },
+  { name: "Saracens", winRate: 0.446 },
+  { name: "Cumans", winRate: 0.443 },
+  { name: "Georgians", winRate: 0.438 },
+  { name: "Incas", winRate: 0.428 },
+  { name: "Hindustanis", winRate: 0.426 }
 ];
 
-const baseCivs = CIV_NAMES.map((name, index) => {
-  const baseStrength = clamp(
-    0.52 + 0.18 * Math.sin(index * 1.23) + 0.09 * Math.cos(index * 0.79),
-    0.254,
-    0.78
-  );
+const CIV_NAMES = CIV_DATA.map((civ) => civ.name);
+
+const BASE_WIN_RATE = 0.5;
+const BASE_STRENGTH = 0.5;
+const PEAK_WIN_RATE = 0.597;
+const PEAK_STRENGTH = 0.78;
+const STRENGTH_SLOPE = (PEAK_STRENGTH - BASE_STRENGTH) / (PEAK_WIN_RATE - BASE_WIN_RATE);
+const STRENGTH_INTERCEPT = BASE_STRENGTH - STRENGTH_SLOPE * BASE_WIN_RATE;
+
+const baseCivs = CIV_DATA.map(({ name, winRate }) => {
+  const baseStrength = convertWinRateToStrength(winRate);
   return {
     name,
     baseStrength,
@@ -58,10 +68,17 @@ const baseCivs = CIV_NAMES.map((name, index) => {
   };
 });
 
+function convertWinRateToStrength(winRate) {
+  const normalizedRate = clamp(winRate, 0, 1);
+  const strength = STRENGTH_SLOPE * normalizedRate + STRENGTH_INTERCEPT;
+  return clamp(strength, 0, 1);
+}
+
 const civs = baseCivs;
 
 let expectedRandomWinRates = new Map();
-let strengthSpread = 1;
+const DEFAULT_STRENGTH_SPREAD = 1.4;
+let strengthSpread = DEFAULT_STRENGTH_SPREAD;
 
 const tableBody = document.querySelector("#civTable tbody");
 const simulateBtn = document.querySelector("#simulateBtn");
@@ -92,8 +109,8 @@ simulateBtn.addEventListener("click", () => {
   if (currentState.running) {
     return;
   }
-  const playerCount = Number(document.querySelector("#playerCount").value) || 1000;
-  const matchCount = Number(document.querySelector("#matchCount").value) || 5000;
+  const playerCount = Number(document.querySelector("#playerCount").value) || 3000;
+  const matchCount = Number(document.querySelector("#matchCount").value) || 25000;
   const kFactor = Number(document.querySelector("#kFactor").value) || 24;
   const matchmakingMode = (matchmakingSelect?.value ?? "elo").toLowerCase();
 
@@ -107,14 +124,16 @@ simulateBtn.addEventListener("click", () => {
 function initialize() {
   currentState.civStats = initializeCivStats();
 
-  const initialSpread = strengthSpreadInput ? Number(strengthSpreadInput.value) || 1 : 1;
+  const initialSpread = strengthSpreadInput
+    ? Number(strengthSpreadInput.value) || DEFAULT_STRENGTH_SPREAD
+    : DEFAULT_STRENGTH_SPREAD;
   updateStrengthSpreadValue(initialSpread);
   updateCivStrengths(initialSpread);
   updateTable();
 
   if (strengthSpreadInput) {
     strengthSpreadInput.addEventListener("input", (event) => {
-      const scale = Number(event.target.value) || 1;
+      const scale = Number(event.target.value) || DEFAULT_STRENGTH_SPREAD;
       updateStrengthSpreadValue(scale);
       if (currentState.running) {
         return;
@@ -147,10 +166,10 @@ function initialize() {
 }
 
 function updateCivStrengths(scale) {
-  const effectiveScale = Number.isFinite(scale) ? scale : 1;
+  const effectiveScale = Number.isFinite(scale) ? scale : DEFAULT_STRENGTH_SPREAD;
   strengthSpread = effectiveScale;
   civs.forEach((civ) => {
-    const adjusted = clamp(0.5 + (civ.baseStrength - 0.5) * strengthSpread, 0.18, 0.92);
+    const adjusted = 0.5 + (civ.baseStrength - 0.5) * strengthSpread;
     civ.strength = Number(adjusted.toFixed(3));
   });
   expectedRandomWinRates = computeExpectedRandomWinRates(civs);
@@ -177,6 +196,7 @@ function renderCivTable() {
         </td>
         <td class="expected-rate" data-civ="${civ.name}">${(expectedRate * 100).toFixed(1)}%</td>
         <td class="win-rate" data-civ="${civ.name}">--</td>
+        <td class="difference" data-civ="${civ.name}">--</td>
         <td class="match-count" data-civ="${civ.name}">0</td>
       `;
       fragment.appendChild(row);
@@ -345,19 +365,38 @@ function updateSkill(player) {
 function updateTable() {
   const { civStats } = currentState;
   civs.forEach((civ) => {
+    const expectedCell = tableBody.querySelector(`.expected-rate[data-civ="${civ.name}"]`);
     const winRateCell = tableBody.querySelector(`.win-rate[data-civ="${civ.name}"]`);
+    const diffCell = tableBody.querySelector(`.difference[data-civ="${civ.name}"]`);
     const matchCell = tableBody.querySelector(`.match-count[data-civ="${civ.name}"]`);
     const stats = civStats.get(civ.name);
-    if (!stats || !winRateCell || !matchCell) return;
+    const expectedRate = expectedRandomWinRates.get(civ.name) ?? civ.strength;
+
+    if (expectedCell) {
+      expectedCell.textContent = `${(expectedRate * 100).toFixed(1)}%`;
+    }
+
+    if (!stats || !winRateCell || !matchCell || !diffCell) return;
     if (stats.games === 0) {
       winRateCell.textContent = "--";
       winRateCell.classList.remove("positive", "negative");
+      diffCell.textContent = "--";
+      diffCell.classList.remove("positive", "negative");
       matchCell.textContent = "0";
     } else {
       const rate = stats.winRate;
       winRateCell.textContent = `${(rate * 100).toFixed(1)}%`;
       winRateCell.classList.toggle("positive", rate > 0.5);
       winRateCell.classList.toggle("negative", rate < 0.5);
+      const diff = rate - expectedRate;
+      const diffPct = (diff * 100).toFixed(1);
+      const formattedDiff = diff > 0 ? `+${diffPct}%` : `${diffPct}%`;
+      diffCell.textContent = formattedDiff;
+      diffCell.classList.toggle("positive", diff > 0);
+      diffCell.classList.toggle("negative", diff < 0);
+      if (diff === 0) {
+        diffCell.classList.remove("positive", "negative");
+      }
       matchCell.textContent = stats.games.toLocaleString();
     }
   });
