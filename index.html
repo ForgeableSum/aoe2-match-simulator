@@ -35,6 +35,10 @@
         </select>
       </div>
       <div class="control-group">
+        <label for="strengthSpread">Civ Strength Spread <span id="strengthSpreadValue">1.00x</span></label>
+        <input type="range" id="strengthSpread" min="0.5" max="2" step="0.05" value="1" />
+      </div>
+      <div class="control-group">
         <label for="matchmakingMode">Matchmaking Mode</label>
         <select id="matchmakingMode">
           <option value="elo" selected>Elo Matchmaking</option>
@@ -53,6 +57,7 @@
         <li>In ELO matchmaking, players match against opponents within 100 ELO whenever possible.</li>
         <li>Each simulated match randomly assigns civilizations to both players; mirrors are allowed.</li>
         <li>Random matchmaking ignores ELO pairings and relies solely on civilization strength for outcomes.</li>
+        <li>The civ strength spread control exaggerates or flattens balance differences before each simulation.</li>
         <li>Visualization updates stream in batches so progress feels alive without instant jumps.</li>
       </ul>
     </section>
@@ -86,14 +91,15 @@
           <thead>
             <tr>
               <th>Civilization</th>
-              <th>
+              <th class="has-tooltip">
                 Strength
                 <span class="help-icon" role="img" aria-label="Strength help" tabindex="0">?</span>
-                  <span class="help-tooltip" role="tooltip">
-                    Strength is a notional balance factor. In a matchup it influences win odds, e.g. a 0.70 strength civ versus a 0.50 strength civ would expect roughly a 58% win chance.
-                  </span>
+                <span class="help-tooltip" role="tooltip">
+                  Strength is a notional balance factor. In a matchup it influences win odds; for example, a 0.70 strength civ versus a 0.50 strength civ would expect roughly a 58% win chance.
+                </span>
               </th>
-              <th>Expected (Strength)</th>
+              <th>Strength Win Rate</th>
+              <th>Expected (Equal Skill)</th>
               <th>Win Rate</th>
               <th>Matches</th>
             </tr>
@@ -110,6 +116,16 @@
       </header>
       <div class="insights-content" id="insightsContent">
         Run a simulation to uncover which civilizations buck the balance curve.
+      </div>
+    </section>
+
+    <section class="panel conclusions" id="conclusionsPanel" aria-live="polite">
+      <header class="panel-header">
+        <h2>Author’s conclusions</h2>
+      </header>
+      <div class="conclusions-body">
+        <p>Win rates by civilization do not reflect their strength. i.e. if a civ is 70% stronger on average than all other civs, it will only have a slightly higher than 50% win rate, instead of 70% (expected).</p>
+        <p>This does not demonstrate that civs in aoe de are imbalanced. It only demonstrates that if civs are imbalanced, <strong>it will not reflect properly in the win rates for civilizations.</strong></p>
       </div>
     </section>
   </main>

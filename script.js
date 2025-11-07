@@ -45,19 +45,23 @@ const CIV_NAMES = [
   "Vikings"
 ];
 
-const civs = CIV_NAMES.map((name, index) => {
-  const strength = clamp(
+const baseCivs = CIV_NAMES.map((name, index) => {
+  const baseStrength = clamp(
     0.52 + 0.18 * Math.sin(index * 1.23) + 0.09 * Math.cos(index * 0.79),
-    0.25,
-    0.82
+    0.254,
+    0.78
   );
   return {
     name,
-    strength: Number(strength.toFixed(3))
+    baseStrength,
+    strength: baseStrength
   };
 });
 
-const expectedRandomWinRates = computeExpectedRandomWinRates(civs);
+const civs = baseCivs;
+
+let expectedRandomWinRates = new Map();
+let strengthSpread = 1;
 
 const tableBody = document.querySelector("#civTable tbody");
 const simulateBtn = document.querySelector("#simulateBtn");
@@ -69,6 +73,9 @@ const statusLog = document.querySelector("#statusLog");
 const speedSelect = document.querySelector("#speed");
 const matchmakingSelect = document.querySelector("#matchmakingMode");
 const insightsContent = document.querySelector("#insightsContent");
+const strengthSpreadInput = document.querySelector("#strengthSpread");
+const strengthSpreadValue = document.querySelector("#strengthSpreadValue");
+const conclusionsPanel = document.querySelector("#conclusionsPanel");
 
 let currentState = {
   running: false,
@@ -98,17 +105,68 @@ simulateBtn.addEventListener("click", () => {
 });
 
 function initialize() {
-  const avgStrength =
-    civs.reduce((sum, civ) => sum + civ.strength, 0) / civs.length;
-  avgStrengthEl.textContent = avgStrength.toFixed(3);
+  currentState.civStats = initializeCivStats();
+
+  const initialSpread = strengthSpreadInput ? Number(strengthSpreadInput.value) || 1 : 1;
+  updateStrengthSpreadValue(initialSpread);
+  updateCivStrengths(initialSpread);
+  updateTable();
+
+  if (strengthSpreadInput) {
+    strengthSpreadInput.addEventListener("input", (event) => {
+      const scale = Number(event.target.value) || 1;
+      updateStrengthSpreadValue(scale);
+      if (currentState.running) {
+        return;
+      }
+      updateCivStrengths(scale);
+      currentState.players = [];
+      currentState.civStats = initializeCivStats();
+      currentState.matches = 0;
+      currentState.totalMatches = 0;
+      if (matchTicker) {
+        matchTicker.textContent = "0";
+      }
+      if (playerTicker) {
+        playerTicker.textContent = "0";
+      }
+      if (progressBar) {
+        progressBar.style.width = "0%";
+      }
+      if (conclusionsPanel) {
+        conclusionsPanel.classList.remove("visible");
+      }
+      setInsightsMessage("Strength distribution updated. Run a simulation to generate fresh results.");
+      pushStatus("Civ strength spread adjusted — awaiting simulation.");
+      updateTable();
+    });
+  }
+
   setInsightsMessage("Run a simulation to uncover which civilizations buck the balance curve.");
+  pushStatus("Ready. Configure parameters and hit run.");
+}
+
+function updateCivStrengths(scale) {
+  const effectiveScale = Number.isFinite(scale) ? scale : 1;
+  strengthSpread = effectiveScale;
+  civs.forEach((civ) => {
+    const adjusted = clamp(0.5 + (civ.baseStrength - 0.5) * strengthSpread, 0.18, 0.92);
+    civ.strength = Number(adjusted.toFixed(3));
+  });
+  expectedRandomWinRates = computeExpectedRandomWinRates(civs);
+  renderCivTable();
+  updateAverageStrength();
+}
+
+function renderCivTable() {
+  if (!tableBody) return;
   const fragment = document.createDocumentFragment();
   civs
     .slice()
     .sort((a, b) => b.strength - a.strength)
     .forEach((civ) => {
+      const expectedRate = expectedRandomWinRates.get(civ.name) ?? civ.strength;
       const row = document.createElement("tr");
-      const expectedRate = expectedRandomWinRates.get(civ.name) ?? 0.5;
       row.innerHTML = `
         <td class="civ-name">${civ.name}</td>
         <td>
@@ -117,6 +175,7 @@ function initialize() {
           </div>
           <small>${civ.strength.toFixed(3)}</small>
         </td>
+        <td class="strength-expected" data-civ="${civ.name}">${(civ.strength * 100).toFixed(1)}%</td>
         <td class="expected-rate" data-civ="${civ.name}">${(expectedRate * 100).toFixed(1)}%</td>
         <td class="win-rate" data-civ="${civ.name}">--</td>
         <td class="match-count" data-civ="${civ.name}">0</td>
@@ -125,11 +184,24 @@ function initialize() {
     });
   tableBody.innerHTML = "";
   tableBody.appendChild(fragment);
-  pushStatus("Ready. Configure parameters and hit run.");
+}
+
+function updateStrengthSpreadValue(scale) {
+  if (!strengthSpreadValue) return;
+  strengthSpreadValue.textContent = `${scale.toFixed(2)}x`;
+}
+
+function updateAverageStrength() {
+  if (!avgStrengthEl) return;
+  const avgStrength = civs.reduce((sum, civ) => sum + civ.strength, 0) / civs.length;
+  avgStrengthEl.textContent = avgStrength.toFixed(3);
 }
 
 async function runSimulation({ playerCount, matchCount, kFactor, matchmakingMode }) {
   setRunning(true);
+  if (conclusionsPanel) {
+    conclusionsPanel.classList.remove("visible");
+  }
   pushStatus(`Generating ${playerCount} players and scheduling ${matchCount.toLocaleString()} matches.`);
   setInsightsMessage("Crunching numbers &mdash; insights will refresh when the simulation completes.");
 
@@ -173,6 +245,9 @@ async function runSimulation({ playerCount, matchCount, kFactor, matchmakingMode
   updateProgress(true);
   pushStatus("Simulation complete. Balance restored through ELO!");
   renderInsights();
+  if (conclusionsPanel) {
+    conclusionsPanel.classList.toggle("visible", currentState.matchmakingMode === "elo");
+  }
   setRunning(false);
 }
 
@@ -388,6 +463,9 @@ function setRunning(value) {
   currentState.running = value;
   simulateBtn.disabled = value;
   simulateBtn.textContent = value ? "Simulating..." : "Run Simulation";
+  if (strengthSpreadInput) {
+    strengthSpreadInput.disabled = value;
+  }
 }
 
 function computeExpectedRandomWinRates(civList) {

@@ -114,6 +114,51 @@ body {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.control-group input[type="range"] {
+  appearance: none;
+  height: 6px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(88, 166, 255, 0.2);
+  border: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0d1117;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.control-group input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0d1117;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.control-group input[type="range"]:active::-webkit-slider-thumb,
+.control-group input[type="range"]:active::-moz-range-thumb {
+  transform: scale(1.1);
+}
+
+#strengthSpreadValue {
+  color: var(--text);
+  margin-left: 0.35rem;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  font-weight: 600;
+}
+
 .control-group input:focus,
 .control-group select:focus {
   outline: none;
@@ -286,6 +331,10 @@ thead th {
   border-color: var(--accent);
 }
 
+.has-tooltip {
+  position: relative;
+}
+
 .help-tooltip {
   position: absolute;
   left: 1.25rem;
@@ -304,11 +353,11 @@ thead th {
   pointer-events: none;
   transform: translateY(-6px);
   transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 15;
+  z-index: 80;
 }
 
-th:hover .help-tooltip,
-th:focus-within .help-tooltip,
+.has-tooltip:hover .help-tooltip,
+.has-tooltip:focus-within .help-tooltip,
 .help-icon:focus + .help-tooltip {
   opacity: 1;
   pointer-events: auto;
@@ -335,6 +384,7 @@ tbody td {
   background: linear-gradient(90deg, rgba(88, 166, 255, 0.8), rgba(126, 231, 135, 0.7));
 }
 
+.strength-expected,
 .expected-rate {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -382,6 +432,28 @@ tbody td {
 
 .insight-warning {
   color: var(--danger);
+}
+
+.conclusions {
+  grid-column: 1 / -1;
+  display: none;
+}
+
+.conclusions.visible {
+  display: block;
+}
+
+.conclusions-body {
+  border: 1px solid rgba(88, 166, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  background: rgba(22, 27, 34, 0.6);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .footer {
