@@ -65,6 +65,7 @@ const avgStrengthEl = document.querySelector("#avgStrength");
 const progressBar = document.querySelector("#progressBar");
 const statusLog = document.querySelector("#statusLog");
 const speedSelect = document.querySelector("#speed");
+const matchmakingSelect = document.querySelector("#matchmakingMode");
 const insightsContent = document.querySelector("#insightsContent");
 
 let currentState = {
@@ -72,7 +73,8 @@ let currentState = {
   players: [],
   civStats: new Map(),
   matches: 0,
-  totalMatches: 0
+  totalMatches: 0,
+  matchmakingMode: "elo"
 };
 
 initialize();
@@ -84,8 +86,9 @@ simulateBtn.addEventListener("click", () => {
   const playerCount = Number(document.querySelector("#playerCount").value) || 1000;
   const matchCount = Number(document.querySelector("#matchCount").value) || 5000;
   const kFactor = Number(document.querySelector("#kFactor").value) || 24;
+  const matchmakingMode = (matchmakingSelect?.value ?? "elo").toLowerCase();
 
-  runSimulation({ playerCount, matchCount, kFactor }).catch((error) => {
+  runSimulation({ playerCount, matchCount, kFactor, matchmakingMode }).catch((error) => {
     console.error(error);
     pushStatus(`Simulation failed: ${error.message}`);
     setRunning(false);
@@ -121,7 +124,7 @@ function initialize() {
   pushStatus("Ready. Configure parameters and hit run.");
 }
 
-async function runSimulation({ playerCount, matchCount, kFactor }) {
+async function runSimulation({ playerCount, matchCount, kFactor, matchmakingMode }) {
   setRunning(true);
   pushStatus(`Generating ${playerCount} players and scheduling ${matchCount.toLocaleString()} matches.`);
   setInsightsMessage("Crunching numbers &mdash; insights will refresh when the simulation completes.");
@@ -130,6 +133,7 @@ async function runSimulation({ playerCount, matchCount, kFactor }) {
   currentState.civStats = initializeCivStats();
   currentState.matches = 0;
   currentState.totalMatches = matchCount;
+  currentState.matchmakingMode = matchmakingMode === "random" ? "random" : "elo";
 
   playerTicker.textContent = playerCount.toLocaleString();
   matchTicker.textContent = "0";
@@ -151,7 +155,7 @@ async function runSimulation({ playerCount, matchCount, kFactor }) {
   const batchSize = batchMap[speed] ?? 18;
 
   for (let i = 0; i < matchCount; i++) {
-    simulateMatch(kFactor);
+    simulateMatch(kFactor, currentState.matchmakingMode);
     currentState.matches++;
 
     if (i % batchSize === 0) {
@@ -168,10 +172,10 @@ async function runSimulation({ playerCount, matchCount, kFactor }) {
   setRunning(false);
 }
 
-function simulateMatch(kFactor) {
+function simulateMatch(kFactor, matchmakingMode) {
   const { players, civStats } = currentState;
   const playerAIndex = randomInt(players.length);
-  const playerBIndex = selectOpponentIndex(playerAIndex, 100);
+  const playerBIndex = getOpponentIndex(playerAIndex, matchmakingMode, 100);
 
   const playerA = players[playerAIndex];
   const playerB = players[playerBIndex];
@@ -378,6 +382,22 @@ function wait(ms) {
 
 function randomInt(max) {
   return Math.floor(Math.random() * max);
+}
+
+function getOpponentIndex(playerIndex, matchmakingMode, maxDifference) {
+  if (matchmakingMode === "random") {
+    const { players } = currentState;
+    if (players.length <= 1) {
+      return playerIndex;
+    }
+    let opponentIndex = playerIndex;
+    while (opponentIndex === playerIndex) {
+      opponentIndex = randomInt(players.length);
+    }
+    return opponentIndex;
+  }
+
+  return selectOpponentIndex(playerIndex, maxDifference);
 }
 
 function selectOpponentIndex(playerIndex, maxDifference) {
